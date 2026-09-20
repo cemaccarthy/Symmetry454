@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="apple-touch-icon" href="icon.png">
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%23F4EFE3'/%3E%3Crect x='30' y='30' width='50' height='50' fill='%23D7263D'/%3E%3Ccircle cx='125' cy='55' r='25' fill='%23FFD100'/%3E%3Cpolygon points='90,120 60,160 120,160' fill='%231B4F9C'/%3E%3C/svg%3E">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Calendar">
+<title>Calendar</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,700&display=swap');
+
+:root {
+  --bg: #F4EFE3;
+  --bg2: #FFFFFF;
+  --bg3: #E9E1CC;
+  --ink: #1A1A1A;
+
+  --red: #D7263D;
+  --red-dim: #A11B2C;
+  --red-tint: #F6D3D8;
+
+  --yellow: #FFD100;
+  --yellow-dim: #D1A800;
+  --yellow-tint: #FFF0AD;
+
+  --blue: #1B4F9C;
+  --blue-dim: #123A73;
+  --blue-tint: #DAE4F3;
+
+  --green: #5C7A42;
+  --green-dim: #435A2F;
+  --green-tint: #DCE6D0;
+
+  --holiday: #E8792A;
+  --holiday-dim: #B85E1E;
+  --holiday-tint: #FBE0C8;
+
+  --border: #1A1A1A;
+}
+
+* {
+  margin:0; padding:0; box-sizing:border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2.2rem 1.1rem 3.5rem;
+  overscroll-behavior: none;
+}
+
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image:
+    radial-gradient(circle at 90% 4%, var(--red) 0 46px, transparent 47px),
+    radial-gradient(circle at 90% 4%, transparent 0 60px, var(--yellow) 61px, transparent 100px),
+    linear-gradient(135deg, var(--blue) 0 100%);
+  background-position: 0 0, 0 0, -12% 96%;
+  background-size: 100% 100%, 100% 100%, 220px 220px;
+  background-repeat: no-repeat;
+  opacity: 0.13;
+  pointer-events:none; z-index:0;
+}
+
+.header { text-align: center; margin-bottom: 1.3rem; z-index: 1; }
+.label-top {
+  font-weight: 800; letter-spacing: 0.24em; font-size: 1.3rem;
+  color: var(--ink); text-transform: uppercase; margin-bottom: 0.3rem;
+}
+.label-sub {
+  font-size: 0.58rem; letter-spacing: 0.28em; color: rgba(26,26,26,0.42);
+  text-transform: uppercase;
+}
+.bauhaus-mark { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0.7rem; }
+.mark-circle { width: 16px; height: 16px; border-radius: 50%; background: var(--red); }
+.mark-square { width: 14px; height: 14px; background: var(--yellow); transform: rotate(45deg); }
+.mark-triangle { width: 0; height: 0; border-left: 9px solid transparent; border-right: 9px solid transparent; border-bottom: 16px solid var(--blue); }
+
+.app-wrap { z-index: 1; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 1rem; }
+
+/* ── TABS ── */
+.tab-bar { display: flex; gap: 0.5rem; }
+.tab-btn {
+  flex: 1; padding: 0.8rem 0; text-align: center; cursor: pointer;
+  font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.68rem;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  border: 3px solid var(--border); background: var(--bg2); color: var(--ink);
+}
+.tab-btn.active { background: var(--red); color: #fff; box-shadow: 4px 4px 0 var(--ink); }
+.tab-panel { display: none; flex-direction: column; gap: 1rem; }
+.tab-panel.active { display: flex; }
+
+/* ── NAV BAR (shared by month + year navigation) ── */
+.nav-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+  background: var(--bg2); border: 3px solid var(--border); box-shadow: 4px 4px 0 var(--ink);
+  padding: 0.6rem 0.7rem;
+}
+.nav-btn {
+  width: 40px; height: 40px; border: 3px solid var(--border); background: var(--bg2);
+  font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 1.1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.nav-btn:active { background: var(--bg3); }
+.nav-label { font-weight: 800; font-size: 1.1rem; letter-spacing: 0.04em; text-align: center; flex: 1; }
+.nav-tag {
+  display: block; font-size: 0.52rem; font-weight: 800; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--red-dim); margin-top: 0.15rem;
+}
+
+/* ── CARD ── */
+.card {
+  position: relative; width: 100%; background: var(--bg2); border: 3px solid var(--border);
+  padding: 1.1rem 1.1rem 1.15rem; box-shadow: 4px 4px 0 var(--ink);
+}
+.card::before { content: ''; position: absolute; top: -3px; left: -3px; right: -3px; height: 6px; background: var(--accent, var(--red)); }
+.card-accent-red { --accent: var(--red); }
+.card-accent-blue { --accent: var(--blue); }
+.card-accent-yellow { --accent: var(--yellow); }
+.card-accent-green { --accent: var(--green); }
+
+.section-title {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
+  font-weight: 800; color: var(--ink); margin-bottom: 0.7rem;
+}
+.section-title::before { content: ''; width: 10px; height: 10px; background: var(--accent, var(--red)); flex-shrink: 0; }
+
+/* ── TODAY CARD (454 tab) ── */
+.today-card { background: var(--blue); color: #fff; }
+.today-card .section-title { color: rgba(255,255,255,0.85); }
+.today-card .section-title::before { background: #fff; }
+.today-date { font-weight: 800; font-size: 1.4rem; letter-spacing: 0.01em; margin-bottom: 0.15rem; }
+.today-greg { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.03em; color: rgba(255,255,255,0.65); margin-bottom: 0.7rem; }
+.today-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.today-pill {
+  border: 2px solid rgba(255,255,255,0.7); padding: 0.35rem 0.7rem;
+  font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.today-pill.leap { background: var(--yellow); color: var(--ink); border-color: var(--ink); }
+
+/* ── WEEKDAY LEGEND ── */
+.weekday-legend { display: grid; grid-template-columns: 40px repeat(7, 1fr); gap: 0.2rem; padding: 0 0.2rem; }
+.weekday-legend.month-legend { grid-template-columns: repeat(7, 1fr); }
+.weekday-legend span {
+  text-align: center; font-size: 0.56rem; font-weight: 800; letter-spacing: 0.05em;
+  text-transform: uppercase; color: rgba(26,26,26,0.5);
+}
+.weekday-legend span.weekend { color: var(--red-dim); }
+
+/* ── QUARTER (454 tab) ── */
+.quarter-title {
+  display: flex; align-items: center; gap: 0.55rem; margin: 0.3rem 0 -0.1rem;
+  font-weight: 800; font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase;
+}
+.quarter-swatch { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* ── PERIOD (454 tab) ── */
+.period-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.55rem; }
+.period-name { font-weight: 800; font-size: 0.85rem; }
+.period-range { font-size: 0.6rem; color: rgba(26,26,26,0.5); font-weight: 700; letter-spacing: 0.03em; }
+
+.week-row { display: grid; grid-template-columns: 40px repeat(7, 1fr); gap: 0.2rem; align-items: center; padding: 0.3rem 0; border-bottom: 1px solid var(--bg3); }
+.week-row:last-child { border-bottom: none; }
+.week-label { font-size: 0.58rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(26,26,26,0.45); }
+.day-cell { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 32px; }
+.day-num { font-weight: 700; font-size: 0.72rem; color: var(--ink); width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+.day-cell.weekend .day-num { color: var(--red-dim); }
+.day-cell.today .day-num { background: var(--red); color: #fff; border-radius: 50%; font-weight: 800; }
+.month-tag { position: absolute; bottom: -1px; font-size: 0.36rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--blue-dim); }
+
+/* ── LEAP WEEK (454 tab) ── */
+.leap-card { border-style: dashed; background: var(--yellow-tint); }
+.leap-card::before { background: var(--yellow-dim); }
+.leap-note { font-size: 0.64rem; line-height: 1.5; color: rgba(26,26,26,0.65); margin-top: 0.6rem; }
+
+/* ── MONTH GRID (Month tab) ── */
+.month-grid-card { padding: 1rem 0.7rem 1.1rem; }
+.month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.35rem; }
+.month-daycell {
+  position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  background: var(--bg2); border: 2px solid var(--bg3); cursor: pointer;
+}
+.month-daycell.blank { visibility: hidden; pointer-events: none; border: none; }
+.month-daycell .day-num { font-weight: 700; font-size: 0.85rem; color: var(--ink); }
+.month-daycell.weekend .day-num { color: var(--red-dim); }
+.month-daycell.today { border-color: var(--red); border-width: 3px; }
+.month-daycell.selected { background: var(--blue); border-color: var(--blue); }
+.month-daycell.selected .day-num { color: #fff; }
+.month-daycell .event-dot {
+  position: absolute; bottom: 5px; width: 5px; height: 5px; border-radius: 50%; background: var(--red);
+}
+.month-daycell .event-dot.holiday { background: var(--holiday); }
+.month-daycell.selected .event-dot { background: var(--yellow); }
+
+/* ── EVENTS CARD (Month tab) ── */
+.events-heading { font-weight: 800; font-size: 0.92rem; margin-bottom: 0.7rem; }
+.event-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.85rem; }
+.event-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+  padding: 0.55rem 0.65rem; border: 2px solid var(--border); background: var(--bg3);
+}
+.event-item span { font-weight: 600; font-size: 0.78rem; word-break: break-word; -webkit-user-select: text; user-select: text; }
+.event-item.event-item-holiday { border-color: var(--holiday-dim); background: var(--holiday-tint); }
+.holiday-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--holiday); margin-right: 0.4rem; vertical-align: middle; flex-shrink: 0; }
+.holiday-btn {
+  flex-shrink: 0; padding: 0 0.75rem; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.58rem;
+  letter-spacing: 0.08em; text-transform: uppercase; border: 3px solid var(--border); background: var(--bg2);
+  color: var(--ink); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.3rem;
+}
+.holiday-btn::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--holiday); flex-shrink: 0; }
+.holiday-btn.active { background: var(--holiday); color: #fff; border-color: var(--holiday-dim); }
+.holiday-btn.active::before { background: #fff; }
+.event-delete {
+  flex-shrink: 0; width: 26px; height: 26px; border: 2px solid var(--border); background: var(--bg2);
+  font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: rgba(26,26,26,0.55);
+}
+.event-delete:active { background: var(--red-tint); border-color: var(--red); color: var(--red-dim); }
+.event-empty { font-size: 0.7rem; color: rgba(26,26,26,0.5); text-align: center; padding: 0.4rem 0 0.8rem; }
+.event-input-row { display: flex; gap: 0.5rem; }
+.event-input-row input.text-input { flex: 1; }
+.event-input-row .btn { flex-shrink: 0; width: auto; padding: 0 1.1rem; }
+
+.text-input {
+  width: 100%; font-family: 'Poppins', sans-serif; font-size: 0.9rem; font-weight: 600;
+  padding: 0.7rem 0.75rem; border: 3px solid var(--border); background: var(--bg2);
+  color: var(--ink); -webkit-user-select: text; user-select: text; appearance: none; -webkit-appearance: none;
+}
+.text-input:focus { outline: none; border-color: var(--red); }
+
+.btn {
+  font-family: 'Poppins', sans-serif; font-size: 0.76rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; padding: 0.75rem 0;
+  cursor: pointer; border: 3px solid var(--border); background: var(--bg2);
+  color: var(--ink); flex: 1; text-align: center;
+}
+.btn:active { background: var(--bg3); }
+.btn.btn-primary { background: var(--red); color: #fff; border-color: var(--red); box-shadow: 4px 4px 0 var(--ink); }
+.btn.btn-primary:active { background: var(--red-dim); box-shadow: 1px 1px 0 var(--ink); }
+
+.note-text { font-size: 0.62rem; letter-spacing: 0.02em; line-height: 1.5; color: rgba(26,26,26,0.55); text-align: center; margin-top: 0.7rem; }
+
+/* ── DECIMAL CLOCK ── */
+.clock-card { background: var(--ink); }
+.clock-card .section-title { color: rgba(255,255,255,0.82); }
+.clock-card .section-title::before { background: var(--red); }
+.clock-tz-badge { margin-left: auto; font-size: 0.5rem; letter-spacing: 0.12em; color: rgba(255,255,255,0.4); font-weight: 800; text-transform: uppercase; }
+.clock-face { display: flex; align-items: center; justify-content: center; gap: 3px; padding: 0.5rem 0 0.35rem; }
+.digit { position: relative; width: 21px; height: 36px; flex-shrink: 0; }
+.seg { position: absolute; background: rgba(255,255,255,0.09); border-radius: 2px; transition: background .1s linear, box-shadow .1s linear; }
+.seg.on { background: var(--red); box-shadow: 0 0 7px rgba(215,38,61,0.75); }
+.seg-a { top: 0;    left: 3px; width: 15px; height: 3.5px; }
+.seg-g { top: 16px; left: 3px; width: 15px; height: 3.5px; }
+.seg-d { top: 32px; left: 3px; width: 15px; height: 3.5px; }
+.seg-f { top: 2.5px; left: 0;  width: 3.5px; height: 14px; }
+.seg-b { top: 2.5px; right: 0; width: 3.5px; height: 14px; }
+.seg-e { top: 18.5px; left: 0; width: 3.5px; height: 14px; }
+.seg-c { top: 18.5px; right: 0; width: 3.5px; height: 14px; }
+.clock-colon { display: flex; flex-direction: column; justify-content: center; gap: 5px; height: 36px; margin: 0 1px; }
+.clock-colon span { width: 4px; height: 4px; border-radius: 50%; background: var(--red); box-shadow: 0 0 5px rgba(215,38,61,0.7); }
+.clock-caption { text-align: center; font-size: 0.54rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.4); font-weight: 800; margin-top: 0.15rem; }
+
+/* ── CONVERTER (Convert tab) ── */
+.convert-row { display: flex; gap: 0.5rem; }
+.convert-row .text-input { padding: 0.65rem 0.5rem; font-size: 0.78rem; }
+.convert-row .year-input { flex: 1.1; min-width: 0; }
+.convert-row .day-input { flex: 0.7; min-width: 0; }
+.select-input { flex: 1.6; min-width: 0; appearance: none; -webkit-appearance: none; background-image: none; }
+.convert-btn-full { width: 100%; margin-top: 0.7rem; }
+.convert-result { margin-top: 0.85rem; padding: 0.75rem 0.8rem; border: 2px solid var(--border); background: var(--bg3); min-height: 1.4rem; }
+.convert-result:empty { display: none; }
+.convert-result-main { font-weight: 800; font-size: 0.85rem; }
+.convert-result-sub { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.03em; color: rgba(26,26,26,0.55); margin-top: 0.2rem; }
+.convert-error { font-size: 0.72rem; font-weight: 700; color: var(--red-dim); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="label-top">Calendar</div>
+  <div class="label-sub">symmetry454 &middot; perennial &middot; monday first</div>
+  <div class="bauhaus-mark">
+    <span class="mark-circle"></span>
+    <span class="mark-square"></span>
+    <span class="mark-triangle"></span>
+  </div>
+</div>
+
+<div class="app-wrap">
+
+  <div class="card clock-card card-accent-red">
+    <div class="section-title">Decimal Time <span class="clock-tz-badge">New day &middot; UTC&minus;7</span></div>
+    <div class="clock-face" id="clock-face"></div>
+    <div class="clock-caption">10 hours &middot; 100 minutes &middot; 100 seconds</div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="month" onclick="showTab('month')">Month</button>
+    <button class="tab-btn" data-tab="fiveFour" onclick="showTab('fiveFour')">454</button>
+    <button class="tab-btn" data-tab="convert" onclick="showTab('convert')">Convert</button>
+  </div>
+
+  <!-- ══ PRIMARY TAB — MONTH VIEW ══ -->
+  <div class="tab-panel active" id="panel-month">
+
+    <div class="nav-bar">
+      <button class="nav-btn" onclick="changeMonth(-1)">&larr;</button>
+      <div>
+        <div class="nav-label" id="month-label">September 2026</div>
+        <span class="nav-tag" id="month-tag">28 DAYS &middot; Q3</span>
+      </div>
+      <button class="nav-btn" onclick="changeMonth(1)">&rarr;</button>
+    </div>
+
+    <div class="card card-accent-blue month-grid-card">
+      <div class="weekday-legend month-legend">
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span>
+        <span class="weekend">Sat</span><span class="weekend">Sun</span>
+      </div>
+      <div class="month-grid" id="month-grid" style="margin-top:0.5rem;"></div>
+    </div>
+
+    <div class="card card-accent-red">
+      <div class="events-heading" id="events-heading">Select a day</div>
+      <div class="event-list" id="event-list"></div>
+      <div class="event-input-row">
+        <input type="text" id="event-input" class="text-input" placeholder="Add an event" maxlength="80">
+        <button type="button" class="holiday-btn" id="holiday-toggle-btn" onclick="toggleHolidayInput()" aria-pressed="false">Holiday</button>
+        <button class="btn btn-primary" onclick="addEvent()">Add</button>
+      </div>
+      <div class="note-text">Events are stored only on this device, and clear out automatically once their Symmetry454 month (or leap week) has ended.</div>
+    </div>
+
+  </div>
+
+  <!-- ══ SECONDARY TAB — 454 VIEW ══ -->
+  <div class="tab-panel" id="panel-fiveFour">
+
+    <div class="nav-bar">
+      <button class="nav-btn" onclick="changeYear(-1)">&larr;</button>
+      <div>
+        <div class="nav-label" id="year-label">2026</div>
+        <span class="nav-tag" id="year-tag">53-WEEK YEAR</span>
+      </div>
+      <button class="nav-btn" onclick="changeYear(1)">&rarr;</button>
+    </div>
+
+    <div class="card today-card">
+      <div class="section-title">Today</div>
+      <div class="today-date" id="today-date">&mdash;</div>
+      <div class="today-greg" id="today-greg"></div>
+      <div class="today-pills" id="today-pills"></div>
+    </div>
+
+    <div class="weekday-legend">
+      <span></span>
+      <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span>
+      <span class="weekend">Sat</span><span class="weekend">Sun</span>
+    </div>
+
+    <div id="calendar-body"></div>
+
+  </div>
+
+  <!-- ══ TERTIARY TAB — DATE CONVERTER ══ -->
+  <div class="tab-panel" id="panel-convert">
+
+    <div class="card card-accent-blue">
+      <div class="section-title">Gregorian &rarr; Symmetry454</div>
+      <div class="convert-row">
+        <input type="number" id="g2s-year" class="text-input year-input" placeholder="Year">
+        <select id="g2s-month" class="text-input select-input">
+          <option value="1">Jan</option>
+          <option value="2">Feb</option>
+          <option value="3">Mar</option>
+          <option value="4">Apr</option>
+          <option value="5">May</option>
+          <option value="6">Jun</option>
+          <option value="7">Jul</option>
+          <option value="8">Aug</option>
+          <option value="9">Sep</option>
+          <option value="10">Oct</option>
+          <option value="11">Nov</option>
+          <option value="12">Dec</option>
+        </select>
+        <input type="number" id="g2s-day" class="text-input day-input" placeholder="Day" min="1" max="31">
+      </div>
+      <button class="btn btn-primary convert-btn-full" onclick="convertGregToS454()">Convert</button>
+      <div class="convert-result" id="g2s-result"></div>
+    </div>
+
+    <div class="card card-accent-red">
+      <div class="section-title">Symmetry454 &rarr; Gregorian</div>
+      <div class="convert-row">
+        <input type="number" id="s2g-year" class="text-input year-input" placeholder="Year">
+        <select id="s2g-month" class="text-input select-input" onchange="updateS2GDayMax()">
+          <option value="1">M1 &middot; Jan</option>
+          <option value="2">M2 &middot; Feb</option>
+          <option value="3">M3 &middot; Mar</option>
+          <option value="4">M4 &middot; Apr</option>
+          <option value="5">M5 &middot; May</option>
+          <option value="6">M6 &middot; Jun</option>
+          <option value="7">M7 &middot; Jul</option>
+          <option value="8">M8 &middot; Aug</option>
+          <option value="9">M9 &middot; Sep</option>
+          <option value="10">M10 &middot; Oct</option>
+          <option value="11">M11 &middot; Nov</option>
+          <option value="12">M12 &middot; Dec</option>
+          <option value="13">Leap Week</option>
+        </select>
+        <input type="number" id="s2g-day" class="text-input day-input" placeholder="Day" min="1" max="35">
+      </div>
+      <button class="btn btn-primary convert-btn-full" onclick="convertS454ToGreg()">Convert</button>
+      <div class="convert-result" id="s2g-result"></div>
+    </div>
+
+    <div class="note-text">Works for distant past and future dates alike, using the same 52/293-year Symmetry454 leap cycle and proleptic Gregorian reckoning as the rest of this calendar. For years before 1, this uses astronomical year numbering (0 = 1 BCE, &minus;1 = 2 BCE, and so on).</div>
+
+  </div>
+
+</div>
+
+<script>
+document.addEventListener('selectstart', function (e) { e.preventDefault(); });
+document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+// ══════════════════════════════════════════════════════
+//  AUDIO — every clickable thing gets a click sound
+// ══════════════════════════════════════════════════════
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+let clickNoiseBuffer = null;
+function getClickNoiseBuffer(ctx) {
+  if (!clickNoiseBuffer) {
+    const len = Math.floor(ctx.sampleRate * 0.03);
+    clickNoiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = clickNoiseBuffer.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 4);
+  }
+  return clickNoiseBuffer;
+}
+function playButtonClickSound() {
+  try {
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+    const now = ctx.currentTime;
+    const noise = ctx.createBufferSource();
+    noise.buffer = getClickNoiseBuffer(ctx);
+    const bandpass = ctx.createBiquadFilter();
+    bandpass.type = 'bandpass';
+    bandpass.frequency.setValueAtTime(2600, now);
+    bandpass.Q.value = 0.9;
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.5, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.022);
+    noise.connect(bandpass).connect(noiseGain).connect(ctx.destination);
+    noise.start(now); noise.stop(now + 0.03);
+
+    const thock = ctx.createOscillator();
+    const thockGain = ctx.createGain();
+    thock.type = 'sine';
+    thock.frequency.setValueAtTime(180, now);
+    thock.frequency.exponentialRampToValueAtTime(90, now + 0.02);
+    thockGain.gain.setValueAtTime(0.16, now);
+    thockGain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+    thock.connect(thockGain).connect(ctx.destination);
+    thock.start(now); thock.stop(now + 0.03);
+  } catch (e) {}
+}
+// Fires for real <button> elements AND for the tappable day cells,
+// which are plain <div>s with onclick handlers — so *every* tap makes a sound.
+document.addEventListener('click', function (e) {
+  if (e.target.closest('button, .month-daycell')) playButtonClickSound();
+}, true);
+
+function uid() { return 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ══════════════════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════════════════
+function showTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.getElementById('panel-month').classList.toggle('active', name === 'month');
+  document.getElementById('panel-fiveFour').classList.toggle('active', name === 'fiveFour');
+  document.getElementById('panel-convert').classList.toggle('active', name === 'convert');
+}
+
+// ══════════════════════════════════════════════════════
+//  SYMMETRY454 CORE ENGINE
+//  (fixed 28/35/28-day months, perennial Monday starts,
+//   52/293 leap-year cycle, leap week belongs to no month)
+//  — implements the rules from "How to program System454 calendar"
+// ══════════════════════════════════════════════════════
+const S454_MONTH_DAYS  = [28, 35, 28, 28, 35, 28, 28, 35, 28, 28, 35, 28];
+const S454_MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const S454_WD_NAMES    = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const QUARTER_ACCENT   = ['red', 'blue', 'yellow', 'green'];
+// Cumulative whole weeks completed before each month starts (0-indexed by month-1)
+const WEEKS_BEFORE_MONTH = [0, 4, 9, 13, 17, 22, 26, 30, 35, 39, 43, 48];
+const CYCLE_DAYS = 364 * 293 + 52 * 7; // 107,016 days per 293-year cycle
+
+function isLeapYearS454(y) {
+  return (((52 * y + 146) % 293) + 293) % 293 < 52;
+}
+function yearLengthS454(y) { return isLeapYearS454(y) ? 371 : 364; }
+function monthCountS454(y) { return isLeapYearS454(y) ? 13 : 12; } // 13 = the pseudo "Leap Week" page
+
+// Whole days from the calendar's epoch (start of year 0) to the start of year y.
+function daysBeforeYearS454(y) {
+  const cycles = Math.floor(y / 293);
+  const rem = y - cycles * 293;
+  let total = cycles * CYCLE_DAYS;
+  for (let yy = 0; yy < rem; yy++) total += yearLengthS454(yy);
+  return total;
+}
+function dayOfYearS454(m, d) { // 1-based day-of-year for month/day (leap week excluded)
+  let total = 0;
+  for (let i = 0; i < m - 1; i++) total += S454_MONTH_DAYS[i];
+  return total + d;
+}
+function dateToSerialS454(y, m, d) { return daysBeforeYearS454(y) + dayOfYearS454(m, d) - 1; }
+
+function serialToYearS454(serial) {
+  let y = Math.max(0, Math.floor(serial / (365 + 71 / 293)) - 1);
+  while (daysBeforeYearS454(y) > serial) y--;
+  while (daysBeforeYearS454(y + 1) <= serial) y++;
+  return y;
+}
+// Converts an absolute day serial back into { year, month, day, isLeapWeek, leapDay }
+function serialToDateS454(serial) {
+  const y = serialToYearS454(serial);
+  const doy = serial - daysBeforeYearS454(y); // 0-based
+  if (isLeapYearS454(y) && doy >= 364) {
+    return { year: y, isLeapWeek: true, leapDay: doy - 364 + 1 };
+  }
+  let remaining = doy;
+  for (let m = 0; m < 12; m++) {
+    if (remaining < S454_MONTH_DAYS[m]) return { year: y, month: m + 1, day: remaining + 1, isLeapWeek: false };
+    remaining -= S454_MONTH_DAYS[m];
+  }
+}
+// Weekday index of a day within any month/leap-week page: every page starts on Monday.
+function weekdayIdxInPage(d) { return (d - 1) % 7; } // 0=Mon ... 6=Sun
+
+function s454Key(year, monthOr13, day) { return `${year}_${monthOr13}_${day}`; }
+function s454KeyForDate(info) { return info.isLeapWeek ? s454Key(info.year, 13, info.leapDay) : s454Key(info.year, info.month, info.day); }
+
+// ── Anchor to the real-world Gregorian calendar ──
+// Reference point: Symmetry454 Saturday, September 20, 2026 = Gregorian Saturday, September 19, 2026.
+function gregDayCount(y, m, d) { return Math.floor(Date.UTC(y, m - 1, d) / 86400000); }
+const ANCHOR_GREG_DAYCOUNT = gregDayCount(2026, 9, 19);
+const ANCHOR_S454_SERIAL   = dateToSerialS454(2026, 9, 20);
+const SERIAL_OFFSET = ANCHOR_GREG_DAYCOUNT - ANCHOR_S454_SERIAL;
+function serialFromGregDayCount(dc) { return dc - SERIAL_OFFSET; }
+
+// ── "Now", per the rule: a new Symmetry454 day begins at midnight UTC-7 ──
+function getWallDate() {
+  return new Date(Date.now() - 7 * 3600 * 1000); // read this Date's UTC fields as UTC-7 wall-clock fields
+}
+function getTodayS454() {
+  const w = getWallDate();
+  const dc = gregDayCount(w.getUTCFullYear(), w.getUTCMonth() + 1, w.getUTCDate());
+  return serialToDateS454(serialFromGregDayCount(dc));
+}
+function formatGregEquivalent() {
+  const w = getWallDate();
+  const d = new Date(Date.UTC(w.getUTCFullYear(), w.getUTCMonth(), w.getUTCDate()));
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+}
+// Generic (non-"today") Gregorian formatter/parser, used by the converter tab.
+function gregDateFromDayCount(dc) {
+  const dt = new Date(dc * 86400000);
+  return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate() };
+}
+function formatGregDateString(y, m, d) {
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+}
+// Absolute day serial for any S454 date, including leap-week days (month === 13).
+function serialFromS454Input(year, monthOr13, day) {
+  return monthOr13 === 13
+    ? daysBeforeYearS454(year) + 364 + (day - 1)
+    : dateToSerialS454(year, monthOr13, day);
+}
+function formatTodayDateStringS454(info) {
+  const idx = info.isLeapWeek ? weekdayIdxInPage(info.leapDay) : weekdayIdxInPage(info.day);
+  const wd = S454_WD_NAMES[idx];
+  return info.isLeapWeek
+    ? `${wd}, Leap Week Day ${info.leapDay}, ${info.year}`
+    : `${wd}, ${S454_MONTH_NAMES[info.month - 1]} ${info.day}, ${info.year}`;
+}
+
+// ══════════════════════════════════════════════════════
+//  DECIMAL CLOCK — 10 hours / 100 minutes / 100 seconds per day,
+//  driven by the same UTC-7 day boundary, drawn as 7-segment digits.
+// ══════════════════════════════════════════════════════
+const SEVEN_SEG = { 0:'abcdef', 1:'bc', 2:'abged', 3:'abgcd', 4:'fgbc', 5:'afgcd', 6:'afgedc', 7:'abc', 8:'abcdefg', 9:'abcdfg' };
+function digitHTML(n) {
+  const on = SEVEN_SEG[n] || '';
+  return '<div class="digit">' + ['a','b','c','d','e','f','g'].map(s => `<div class="seg seg-${s}${on.includes(s) ? ' on' : ''}"></div>`).join('') + '</div>';
+}
+function colonHTML() { return '<div class="clock-colon"><span></span><span></span></div>'; }
+function getDecimalTimeParts() {
+  const w = getWallDate();
+  const fracDay = (w.getUTCHours() * 3600 + w.getUTCMinutes() * 60 + w.getUTCSeconds() + w.getUTCMilliseconds() / 1000) / 86400;
+  const totalDeciSec = Math.min(99999.999, fracDay * 100000); // 0 .. 100000 deci-seconds/day
+  const h = Math.floor(totalDeciSec / 10000);
+  const mi = Math.floor((totalDeciSec % 10000) / 100);
+  const se = Math.floor(totalDeciSec % 100);
+  return { h, mi, se };
+}
+function renderClock() {
+  const { h, mi, se } = getDecimalTimeParts();
+  const html = digitHTML(h) + colonHTML()
+    + digitHTML(Math.floor(mi / 10)) + digitHTML(mi % 10) + colonHTML()
+    + digitHTML(Math.floor(se / 10)) + digitHTML(se % 10);
+  document.getElementById('clock-face').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════
+//  MONTH VIEW — one Symmetry454 month (or the Leap Week page)
+//  at a time. Every month/page starts Monday, so the grid never
+//  needs leading/trailing blank cells. Events stored on-device.
+// ══════════════════════════════════════════════════════
+const EVENTS_KEY_S454 = 'sym454CalendarEventsByDate';
+
+function loadEventsS454() {
+  try { return JSON.parse(localStorage.getItem(EVENTS_KEY_S454)) || {}; } catch (e) { return {}; }
+}
+function saveEventsS454(events) {
+  try { localStorage.setItem(EVENTS_KEY_S454, JSON.stringify(events)); } catch (e) {}
+}
+function pruneOldEventsS454(events) {
+  const today = getTodayS454();
+  const todayOrder = today.year * 100 + (today.isLeapWeek ? 13 : today.month);
+  let changed = false;
+  Object.keys(events).forEach(key => {
+    const [y, m] = key.split('_').map(Number);
+    if (y * 100 + m < todayOrder) { delete events[key]; changed = true; }
+  });
+  if (changed) saveEventsS454(events);
+  return events;
+}
+let monthEvents = pruneOldEventsS454(loadEventsS454());
+
+let todayS454 = getTodayS454();
+let viewYearS454  = todayS454.year;
+let viewMonthS454 = todayS454.isLeapWeek ? 13 : todayS454.month;
+let selectedKeyS454 = s454KeyForDate(todayS454);
+
+function changeMonth(delta) {
+  viewMonthS454 += delta;
+  while (true) {
+    if (viewMonthS454 < 1) { viewYearS454--; viewMonthS454 += monthCountS454(viewYearS454); }
+    else if (viewMonthS454 > monthCountS454(viewYearS454)) { viewMonthS454 -= monthCountS454(viewYearS454); viewYearS454++; }
+    else break;
+  }
+  if (viewYearS454 === todayS454.year && viewMonthS454 === (todayS454.isLeapWeek ? 13 : todayS454.month)) {
+    selectedKeyS454 = s454KeyForDate(todayS454);
+  } else {
+    selectedKeyS454 = s454Key(viewYearS454, viewMonthS454, 1);
+  }
+  renderMonth();
+}
+
+function selectDay(key) {
+  selectedKeyS454 = key;
+  renderMonth();
+}
+
+let addingHoliday = false;
+function toggleHolidayInput() {
+  addingHoliday = !addingHoliday;
+  const btn = document.getElementById('holiday-toggle-btn');
+  btn.classList.toggle('active', addingHoliday);
+  btn.setAttribute('aria-pressed', String(addingHoliday));
+}
+
+function addEvent() {
+  const input = document.getElementById('event-input');
+  const text = input.value.trim();
+  if (!text || !selectedKeyS454) return;
+  if (!monthEvents[selectedKeyS454]) monthEvents[selectedKeyS454] = [];
+  monthEvents[selectedKeyS454].push({ id: uid(), text, isHoliday: addingHoliday });
+  saveEventsS454(monthEvents);
+  input.value = '';
+  addingHoliday = false;
+  const btn = document.getElementById('holiday-toggle-btn');
+  if (btn) { btn.classList.remove('active'); btn.setAttribute('aria-pressed', 'false'); }
+  renderMonth();
+}
+function deleteEvent(key, id) {
+  if (!monthEvents[key]) return;
+  monthEvents[key] = monthEvents[key].filter(e => e.id !== id);
+  if (monthEvents[key].length === 0) delete monthEvents[key];
+  saveEventsS454(monthEvents);
+  renderMonth();
+}
+
+function renderMonth() {
+  const isLeapPage = viewMonthS454 === 13;
+  const len = isLeapPage ? 7 : S454_MONTH_DAYS[viewMonthS454 - 1];
+
+  if (isLeapPage) {
+    document.getElementById('month-label').textContent = `Leap Week ${viewYearS454}`;
+    document.getElementById('month-tag').textContent = '7 DAYS \u00b7 YEAR-ONLY';
+  } else {
+    document.getElementById('month-label').textContent = `${S454_MONTH_NAMES[viewMonthS454 - 1]} ${viewYearS454}`;
+    const quarter = Math.floor((viewMonthS454 - 1) / 3) + 1;
+    document.getElementById('month-tag').textContent = `${len} DAYS \u00b7 Q${quarter}`;
+  }
+
+  let html = '';
+  for (let d = 1; d <= len; d++) {
+    const key = s454Key(viewYearS454, viewMonthS454, d);
+    const idx = weekdayIdxInPage(d);
+    const isWeekend = idx >= 5;
+    const isToday = isLeapPage
+      ? (todayS454.isLeapWeek && todayS454.year === viewYearS454 && todayS454.leapDay === d)
+      : (!todayS454.isLeapWeek && todayS454.year === viewYearS454 && todayS454.month === viewMonthS454 && todayS454.day === d);
+    const isSelected = key === selectedKeyS454;
+    const dayEvents = monthEvents[key] || [];
+    const hasEvents = dayEvents.length > 0;
+    const hasHoliday = dayEvents.some(e => e.isHoliday);
+    html += `<div class="month-daycell${isWeekend ? ' weekend' : ''}${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}" onclick="selectDay('${key}')">
+      <span class="day-num">${d}</span>
+      ${hasEvents ? `<span class="event-dot${hasHoliday ? ' holiday' : ''}"></span>` : ''}
+    </div>`;
+  }
+  document.getElementById('month-grid').innerHTML = html;
+
+  // Events card
+  if (selectedKeyS454) {
+    const [y, m, d] = selectedKeyS454.split('_').map(Number);
+    const idx = weekdayIdxInPage(d);
+    const heading = (m === 13)
+      ? `${S454_WD_NAMES[idx]}, Leap Week Day ${d}, ${y}`
+      : `${S454_WD_NAMES[idx]}, ${S454_MONTH_NAMES[m - 1]} ${d}, ${y}`;
+    document.getElementById('events-heading').textContent = heading;
+    const list = monthEvents[selectedKeyS454] || [];
+    document.getElementById('event-list').innerHTML = list.length
+      ? list.map(e => `<div class="event-item${e.isHoliday ? ' event-item-holiday' : ''}"><span>${e.isHoliday ? '<span class="holiday-dot"></span>' : ''}${escapeHTML(e.text)}</span><button class="event-delete" onclick="deleteEvent('${selectedKeyS454}','${e.id}')">&times;</button></div>`).join('')
+      : `<div class="event-empty">No events yet on this day.</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  454 VIEW — full year broken into 4 quarters of 3 months
+//  (4/5/4 weeks each = 13 weeks/quarter), plus the leap week.
+// ══════════════════════════════════════════════════════
+function dayCellHTMLS454(day, isToday) {
+  const idx = weekdayIdxInPage(day);
+  const weekend = idx >= 5;
+  return `<div class="day-cell${weekend ? ' weekend' : ''}${isToday ? ' today' : ''}"><span class="day-num">${day}</span></div>`;
+}
+function periodCardHTMLS454(year, month, today) {
+  const accent = QUARTER_ACCENT[Math.floor((month - 1) / 3)];
+  const len = S454_MONTH_DAYS[month - 1];
+  const weeksCount = len / 7;
+  let rows = '';
+  for (let w = 0; w < weeksCount; w++) {
+    const weekIndex = WEEKS_BEFORE_MONTH[month - 1] + w + 1;
+    let cells = '';
+    for (let i = 0; i < 7; i++) {
+      const day = w * 7 + i + 1;
+      const isToday = !today.isLeapWeek && today.year === year && today.month === month && today.day === day;
+      cells += dayCellHTMLS454(day, isToday);
+    }
+    rows += `<div class="week-row"><span class="week-label">Wk ${weekIndex}</span>${cells}</div>`;
+  }
+  return `<div class="card card-accent-${accent}">
+    <div class="period-head">
+      <span class="period-name">Month ${month} &middot; ${S454_MONTH_NAMES[month - 1]}</span>
+      <span class="period-range">${len} days &middot; ${weeksCount} wks</span>
+    </div>
+    ${rows}
+  </div>`;
+}
+function leapWeekCardHTMLS454(year, today) {
+  let cells = '';
+  for (let d = 1; d <= 7; d++) {
+    const isToday = today.isLeapWeek && today.year === year && today.leapDay === d;
+    cells += dayCellHTMLS454(d, isToday);
+  }
+  return `<div class="card leap-card">
+    <div class="section-title">Leap Week &middot; Week 53</div>
+    <div class="period-head">
+      <span class="period-name">Extra Week</span>
+      <span class="period-range">7 days &middot; belongs to no month</span>
+    </div>
+    <div class="week-row"><span class="week-label">Wk 53</span>${cells}</div>
+    <div class="leap-note">Symmetry454 uses a 52/293-year leap cycle. In a leap year, this extra week is appended after December 28 &mdash; it belongs to the year only, never to a month.</div>
+  </div>`;
+}
+
+let currentYearS454 = todayS454.year;
+
+function renderFiveFour() {
+  const today = todayS454;
+  const isLeap = isLeapYearS454(currentYearS454);
+
+  document.getElementById('year-label').textContent = currentYearS454;
+  document.getElementById('year-tag').textContent = isLeap ? '53-WEEK YEAR' : '52-WEEK YEAR';
+
+  document.getElementById('today-date').textContent = formatTodayDateStringS454(today);
+  document.getElementById('today-greg').textContent = `Gregorian: ${formatGregEquivalent()}`;
+
+  let pillsHTML = '';
+  if (today.year !== currentYearS454) {
+    pillsHTML = `<span class="today-pill">Outside ${currentYearS454}</span>`;
+  } else if (today.isLeapWeek) {
+    pillsHTML = `<span class="today-pill">Week 53</span><span class="today-pill leap">Leap Week</span>`;
+  } else {
+    const weekIndex = WEEKS_BEFORE_MONTH[today.month - 1] + Math.floor((today.day - 1) / 7) + 1;
+    const quarter = Math.floor((today.month - 1) / 3) + 1;
+    pillsHTML = `<span class="today-pill">Week ${weekIndex}</span><span class="today-pill">Month ${today.month} &middot; ${S454_MONTH_NAMES[today.month - 1]}</span><span class="today-pill">Q${quarter}</span>`;
+  }
+  document.getElementById('today-pills').innerHTML = pillsHTML;
+
+  let html = '';
+  for (let q = 0; q < 4; q++) {
+    const accent = QUARTER_ACCENT[q];
+    html += `<div class="quarter-title"><span class="quarter-swatch" style="background:var(--${accent})"></span>Quarter ${q + 1}</div>`;
+    for (let m = q * 3 + 1; m <= q * 3 + 3; m++) html += periodCardHTMLS454(currentYearS454, m, today);
+  }
+  if (isLeap) {
+    html += `<div class="quarter-title"><span class="quarter-swatch" style="background:var(--yellow-dim)"></span>Beyond Q4</div>`;
+    html += leapWeekCardHTMLS454(currentYearS454, today);
+  }
+  document.getElementById('calendar-body').innerHTML = html;
+}
+
+function changeYear(delta) {
+  currentYearS454 += delta;
+  renderFiveFour();
+}
+
+// ══════════════════════════════════════════════════════
+//  CONVERT TAB — Gregorian <-> Symmetry454, works for any
+//  distant past/future date using the same anchor + cycle math
+//  that drives the rest of the app.
+// ══════════════════════════════════════════════════════
+function convertGregToS454() {
+  const resultEl = document.getElementById('g2s-result');
+  const y = parseInt(document.getElementById('g2s-year').value, 10);
+  const m = parseInt(document.getElementById('g2s-month').value, 10);
+  const d = parseInt(document.getElementById('g2s-day').value, 10);
+
+  if (!Number.isFinite(y) || !Number.isFinite(d)) {
+    resultEl.innerHTML = `<div class="convert-error">Enter a valid year and day.</div>`;
+    return;
+  }
+  const check = new Date(Date.UTC(y, m - 1, d));
+  if (check.getUTCFullYear() !== y || check.getUTCMonth() !== m - 1 || check.getUTCDate() !== d) {
+    resultEl.innerHTML = `<div class="convert-error">That isn't a real Gregorian date.</div>`;
+    return;
+  }
+
+  const dc = gregDayCount(y, m, d);
+  const serial = serialFromGregDayCount(dc);
+  const info = serialToDateS454(serial);
+  const sub = info.isLeapWeek
+    ? 'Leap Week &middot; belongs to no month'
+    : `Month ${info.month} &middot; ${S454_MONTH_NAMES[info.month - 1]} &middot; ${S454_MONTH_DAYS[info.month - 1]} days`;
+  resultEl.innerHTML = `<div class="convert-result-main">${formatTodayDateStringS454(info)}</div><div class="convert-result-sub">${sub}</div>`;
+}
+
+function updateS2GDayMax() {
+  const monthSel = document.getElementById('s2g-month');
+  const dayInput = document.getElementById('s2g-day');
+  const val = parseInt(monthSel.value, 10);
+  const max = val === 13 ? 7 : S454_MONTH_DAYS[val - 1];
+  dayInput.max = max;
+  if (parseInt(dayInput.value, 10) > max) dayInput.value = max;
+}
+
+function convertS454ToGreg() {
+  const resultEl = document.getElementById('s2g-result');
+  const y = parseInt(document.getElementById('s2g-year').value, 10);
+  const mOr13 = parseInt(document.getElementById('s2g-month').value, 10);
+  const d = parseInt(document.getElementById('s2g-day').value, 10);
+
+  if (!Number.isFinite(y) || !Number.isFinite(d) || d < 1) {
+    resultEl.innerHTML = `<div class="convert-error">Enter a valid year and day.</div>`;
+    return;
+  }
+  const isLeapPage = mOr13 === 13;
+  if (isLeapPage && !isLeapYearS454(y)) {
+    resultEl.innerHTML = `<div class="convert-error">${y} isn't a Symmetry454 leap year &mdash; it has no Leap Week.</div>`;
+    return;
+  }
+  const maxDay = isLeapPage ? 7 : S454_MONTH_DAYS[mOr13 - 1];
+  if (d > maxDay) {
+    resultEl.innerHTML = `<div class="convert-error">${isLeapPage ? 'Leap Week' : S454_MONTH_NAMES[mOr13 - 1]} only has ${maxDay} days.</div>`;
+    return;
+  }
+
+  const serial = serialFromS454Input(y, mOr13, d);
+  const dc = serial + SERIAL_OFFSET;
+  const g = gregDateFromDayCount(dc);
+  resultEl.innerHTML = `<div class="convert-result-main">${formatGregDateString(g.y, g.m, g.d)}</div><div class="convert-result-sub">Gregorian calendar (proleptic)</div>`;
+}
+
+function initConverterDefaults() {
+  const now = new Date();
+  document.getElementById('g2s-year').value = now.getFullYear();
+  document.getElementById('g2s-month').value = now.getMonth() + 1;
+  document.getElementById('g2s-day').value = now.getDate();
+
+  document.getElementById('s2g-year').value = todayS454.year;
+  document.getElementById('s2g-month').value = todayS454.isLeapWeek ? 13 : todayS454.month;
+  updateS2GDayMax();
+  document.getElementById('s2g-day').value = todayS454.isLeapWeek ? todayS454.leapDay : todayS454.day;
+}
+
+// ══════════════════════════════════════════════════════
+//  CLOCK / MIDNIGHT-UTC-7 ROLLOVER LOOP
+// ══════════════════════════════════════════════════════
+let lastTodayKey = s454KeyForDate(todayS454);
+function tick() {
+  renderClock();
+  const t = getTodayS454();
+  const key = s454KeyForDate(t);
+  if (key !== lastTodayKey) {
+    lastTodayKey = key;
+    todayS454 = t;
+    monthEvents = pruneOldEventsS454(monthEvents);
+    renderMonth();
+    renderFiveFour();
+  }
+}
+setInterval(tick, 100);
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+renderClock();
+renderMonth();
+renderFiveFour();
+initConverterDefaults();
+</script>
+</body>
+</html>
